@@ -1,0 +1,10 @@
+**/node_modules
+**/.DS_Store
+**/.env
+
+analyser/docs/**
+analyser/lib/**
+
+renderer/puppeteer/screenshots/**
+
+lighthouse/reports/**

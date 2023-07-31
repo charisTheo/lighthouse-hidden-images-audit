@@ -1,0 +1,24 @@
+{
+  "name": "lighthouse-hidden-images-audit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./node_modules/lerna/index.js",
+  "scripts": {
+    "init": "npm i && lerna run init",
+    "start": "lerna run start --parallel",
+    "build": "lerna run build",
+    "lint": "lerna run lint",
+    "precommit-msg": "echo 'Running linter...' && exit 0"
+  },
+  "pre-commit": [ "precommit-msg", "lint" ],
+  "engines": {
+    "node": ">=14.15.5"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "lerna": "^3.22.1",
+    "pre-commit": "^1.2.2"
+  }
+}

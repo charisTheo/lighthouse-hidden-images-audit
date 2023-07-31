@@ -1,0 +1,21 @@
+{
+  "name": "lighthouse-hidden-images-audit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lh": "lighthouse --config-path config.js --view --output html --output-path=./reports/lh-report.html",
+    "lint": "eslint './**/*.js' --fix --ignore-pattern 'node_modules/**'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lighthouse": "^7.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-config-google": "^0.14.0",
+    "nodemon": "^2.0.7"
+  }
+}
