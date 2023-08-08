@@ -120,13 +120,14 @@ class HiddenImages extends Audit {
 
     /** @type {Array<LH.Audit.ByteEfficiencyItem>} */
     const items = HiddenImages.filterNonImages(unfilteredResults, networkRecords);
-    console.log('\t🏞️ Number of images found:', items.length);
+    // console.log('\t🏞️ Number of images found:', items.length);
 
     const wastedBytes = items.reduce((acc, cur) => acc += cur.wastedBytes, 0);
-    console.log('\t🔢 wastedBytes:', wastedBytes);
+    // console.log('\t🔢 wastedBytes:', wastedBytes);
 
+    // TODO determine p10 and median for image sizes
     const score = Audit.computeLogNormalScore({p10: 2000, median: 40000}, wastedBytes);
-    console.log('\t💯 score:', score);
+    // console.log('\t💯 score:', score);
 
     /** @type {LH.Audit.Details.Opportunity['headings']} */
     const headings = [
@@ -138,10 +139,9 @@ class HiddenImages extends Audit {
 
     return {
       warnings,
-      items,
+      details: this.makeTableDetails(headings, items, {wastedBytes, sortedBy: ['wastedBytes']}),
       headings,
       score,
-      wastedBytesByUrl: resultsMap,
       numericValue: wastedBytes,
       numericUnit: 'byte',
     };
