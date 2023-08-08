@@ -1,14 +1,6 @@
-'use strict';
-
-module.exports = {
+export default {
   extends: 'lighthouse:default',
 
-  passes: [{
-    passName: 'defaultPass',
-    gatherers: [
-      'hidden-images-gatherer',
-    ],
-  }],
   artifacts: [
     {id: 'PageImages', gatherer: 'hidden-images-gatherer'},
   ],
@@ -17,14 +9,21 @@ module.exports = {
   ],
 
   categories: {
-    performance: {
+    // performance: {
+    //   auditRefs: [
+    //     {id: 'hidden-images-audit', weight: 0, group: 'load-opportunities'},
+    //   ],
+    // },
+    mysite: {
+      title: 'My custom audits',
+      description: 'Custom performance audits',
       auditRefs: [
-        {id: 'hidden-images-audit', weight: 0, group: 'load-opportunities'},
+        {id: 'hidden-images-audit', weight: 1},
       ],
     },
   },
   settings: {
-    onlyCategories: ['performance'],
+    onlyCategories: ['mysite'],
     // onlyAudits: ['hidden-images-audit'],
   },
 };

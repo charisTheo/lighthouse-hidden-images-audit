@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "lh": "lighthouse --config-path config.js --view --output html --output-path=./reports/lh-report.html",
     "lint": "eslint './**/*.js' --fix --ignore-pattern 'node_modules/**'"
@@ -11,9 +12,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lighthouse": "^7.4.0"
+    "lighthouse": "^10.4.0"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.3.0",
+    "@typescript-eslint/parser": "^6.3.0",
     "eslint": "^7.20.0",
     "eslint-config-google": "^0.14.0",
     "nodemon": "^2.0.7"

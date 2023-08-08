@@ -1,10 +1,7 @@
-'use strict';
-
-const pageFunctions =
-  require('lighthouse/lighthouse-core/lib/page-functions.js');
-const Gatherer = require('lighthouse').Gatherer;
-const path = require('path');
-const fs = require('fs');
+import {pageFunctions} from 'lighthouse/core/lib/page-functions.js';
+import {Gatherer} from 'lighthouse';
+import path from 'path';
+import fs from 'fs';
 
 const analyserPath = path.resolve(process.cwd(), './../analyser/lib/index.mjs');
 let analyser = null;
@@ -32,11 +29,16 @@ try {
  * @fileoverview Extracts all image (<img>) elements from the test page.
  */
 class PageImages extends Gatherer {
+  meta = {
+    supportedModes: ['navigation'],
+    requiredArtifacts: ['traces', 'devtoolsLogs'],
+  };
+
   /**
    * @param {Object} context
    * @return {Object} results object -> results.images[]
    */
-  afterPass(context) {
+  getArtifact(context) {
     const driver = context.driver;
 
     // TODO can I use another gatherer instead and run the analyser on results?
@@ -49,7 +51,7 @@ class PageImages extends Gatherer {
           await analyse() : 
           await window.analyse()`, {
           args: [],
-          deps: [pageFunctions.getNodeDetailsString, analyser],
+          deps: [pageFunctions.getNodeDetails, analyser],
         })
         .then((results) => {
           if (!results) {
@@ -63,4 +65,4 @@ class PageImages extends Gatherer {
   }
 }
 
-module.exports = PageImages;
+export default PageImages;

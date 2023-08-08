@@ -3,54 +3,43 @@
  * @fileoverview Checks that no hidden images have been
  *  downloaded through the network
  */
-'use strict';
 
-require('./../analyser/src/image.d');
-const i18n = require('lighthouse/lighthouse-core/lib/i18n/i18n.js');
-const URL = require('lighthouse/lighthouse-core/lib/url-shim.js');
-const ByteEfficiencyAudit = require('lighthouse/lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js');
-const NetworkRequest =
-  require('lighthouse/lighthouse-core/lib/network-request');
-
-const UIStrings = {
-  title: 'Does not download hidden images',
-  failureTitle: 'Hidden images are downloaded',
-  description:
-    'Prevent non-visible images from ' +
-    'being downloaded. ' +
-    '[Learn more](https://www.harrytheo.com/blog/2021/03/optimised-images-for-the-web-responsive-and-adaptable/#the--display-none--trap).',
-};
+import './../analyser/src/image.d.js';
+import {UIStrings} from 'lighthouse/core/lib/i18n/i18n.js';
+import UrlUtils from 'lighthouse/core/lib/url-utils.js';
+import {NetworkRequest} from 'lighthouse/core/lib/network-request.js';
+import {Audit, NetworkRecords} from 'lighthouse';
 
 const IGNORE_THRESHOLD_IN_BYTES = 2048;
 
-const str_ = i18n.createMessageInstanceIdFn(__filename, UIStrings);
-
-/** @typedef {{url: string, totalBytes: number, wastedBytes: number, currentSrc: string}} WasteResult */
-
 // eslint-disable-next-line require-jsdoc
-class HiddenImages extends ByteEfficiencyAudit {
+class HiddenImages extends Audit {
   /**
    * @return {LH.Audit.Meta}
    */
   static get meta() {
     return {
       id: 'hidden-images-audit',
-      title: str_(UIStrings.title),
-      failureTitle: str_(UIStrings.failureTitle),
-      description: str_(UIStrings.description),
-      scoreDisplayMode: ByteEfficiencyAudit.SCORING_MODES.NUMERIC,
+      title: 'Does not download hidden images',
+      failureTitle: 'Hidden images are downloaded',
+      description: 'Prevent non-visible images from ' +
+      'being downloaded. ' +
+      '[Learn more](https://www.harrytheo.com/blog/2021/03/optimised-images-for-the-web-responsive-and-adaptable/#the--display-none--trap).',
+      scoreDisplayMode: Audit.SCORING_MODES.NUMERIC,
       requiredArtifacts: ['PageImages', 'devtoolsLogs', 'traces'],
     };
   }
 
   /**
    * @param {Image} image
-   * @param {Array<LH.Artifacts.NetworkRequest>} networkRecords
-   * @return {null|Error|WasteResult}
+   * @param {Array<LH.Artifacts.NetworkRecord>} networkRecords
+   * @return {null|Error|LH.Audit.ByteEfficiencyItem}
    */
   static computeWaste(image, networkRecords) {
-    const networkRecord = networkRecords.find((record) => record.url === image.currentSrc) || {};
-    const url = URL.elideDataURI(image.currentSrc);
+    const networkRecord = networkRecords.find((record, i) => {
+      return record.url === image.currentSrc;
+    }) || {};
+    const url = UrlUtils.elideDataURI(image.currentSrc);
     const {resourceSize = 0, transferSize = 0} = networkRecord;
     const totalBytes = Math.min(resourceSize, transferSize);
     const wastedBytes = totalBytes;
@@ -59,6 +48,7 @@ class HiddenImages extends ByteEfficiencyAudit {
       url,
       totalBytes,
       wastedBytes,
+      // wastedPercent: 100, (optional)
       currentSrc: image.currentSrc,
     };
   }
@@ -67,9 +57,9 @@ class HiddenImages extends ByteEfficiencyAudit {
    * Filters out non-image requests that were made within
    * an <img>'s src attribute and images without a network record
    *
-   * @param {WasteResult[]} images
-   * @param {Array<LH.Artifacts.NetworkRequest>} networkRecords
-   * @return {WasteResult[]}
+   * @param {Array<LH.Audit.ByteEfficiencyItem>} images
+   * @param {Array<LH.Artifacts.NetworkRecord>} networkRecords
+   * @return {Array<LH.Audit.ByteEfficiencyItem>}
    */
   static filterNonImages(images, networkRecords) {
     return images.filter((image) => {
@@ -93,11 +83,13 @@ class HiddenImages extends ByteEfficiencyAudit {
 
   /**
    * @param {LH.Artifacts} artifacts
-   * @param {Array<LH.Artifacts.NetworkRequest>} networkRecords
+   * @param {LH.Audit.Context} context
    * @return {Promise<ByteEfficiencyAudit.ByteEfficiencyProduct>}
    */
-  static async audit_(artifacts, networkRecords) {
+  static async audit(artifacts, context) {
     const {images} = artifacts.PageImages;
+    const devtoolsLog = artifacts.devtoolsLogs[Audit.DEFAULT_PASS];
+    const networkRecords = await NetworkRecords.request(devtoolsLog, context);
 
     /** @type {string[]} */
     const warnings = [];
@@ -121,27 +113,39 @@ class HiddenImages extends ByteEfficiencyAudit {
 
       return results;
     // eslint-disable-next-line no-undef
-    }, /** @type {Map<string, WasteResult>} */ (new Map()));
+    }, /** @type {Map<string, LH.Audit.ByteEfficiencyItem>} */ (new Map()));
 
+    /** @type {Array<LH.Audit.ByteEfficiencyItem>} */
     const unfilteredResults = Array.from(resultsMap.values());
 
+    /** @type {Array<LH.Audit.ByteEfficiencyItem>} */
     const items = HiddenImages.filterNonImages(unfilteredResults, networkRecords);
+    console.log('\t🏞️ Number of images found:', items.length);
+
+    const wastedBytes = items.reduce((acc, cur) => acc += cur.wastedBytes, 0);
+    console.log('\t🔢 wastedBytes:', wastedBytes);
+
+    const score = Audit.computeLogNormalScore({p10: 2000, median: 40000}, wastedBytes);
+    console.log('\t💯 score:', score);
 
     /** @type {LH.Audit.Details.Opportunity['headings']} */
     const headings = [
       {key: 'url', valueType: 'thumbnail', label: ''},
-      {key: 'url', valueType: 'url', label: str_(i18n.UIStrings.columnURL)},
-      {key: 'totalBytes', valueType: 'bytes', label: str_(i18n.UIStrings.columnResourceSize)},
-      {key: 'wastedBytes', valueType: 'bytes', label: str_(i18n.UIStrings.columnWastedBytes)},
+      {key: 'url', valueType: 'url', label: UIStrings.columnURL},
+      {key: 'totalBytes', valueType: 'bytes', label: UIStrings.columnResourceSize},
+      {key: 'wastedBytes', valueType: 'bytes', label: UIStrings.columnWastedBytes},
     ];
 
     return {
       warnings,
       items,
       headings,
+      score,
+      wastedBytesByUrl: resultsMap,
+      numericValue: wastedBytes,
+      numericUnit: 'byte',
     };
   }
 }
 
-module.exports = HiddenImages;
-module.exports.UIStrings = UIStrings;
+export default HiddenImages;

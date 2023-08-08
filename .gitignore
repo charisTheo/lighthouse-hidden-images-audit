@@ -8,3 +8,4 @@ analyser/lib/**
 renderer/puppeteer/screenshots/**
 
 lighthouse/reports/**
+lighthouse/latest-run/**
